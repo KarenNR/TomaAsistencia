@@ -35,41 +35,13 @@
 
     <div class="container py-4">
         <div class="row m-0">
-            <h1 class="mb-3">Mis cursos</h1>
-            {% for curso in cursos %}
-            <div class="col-3">
-                <div class="card">
-                    <img src="/static/img/course_{{ curso[0] }}.jpg" class="card-img-top" alt="{{ curso[1] }}">
-                    <div class="card-body p-4">
-                        <button class="stretched-link card-title transparent-button text-start px-0" onclick="goCourse('{{ curso[0] }}')">
-                            <h5>{{ curso[1] }}</h5>
-                        </button>
-                        <p class="card-text">
-                            <b>Horario:</b>
-                            {% if curso[3] %}L{% endif %}
-                            {% if curso[4] %}M{% endif %}
-                            {% if curso[5] %}Mi{% endif %}
-                            {% if curso[6] %}J{% endif %}
-                            {% if curso[7] %}V{% endif %}
-                            {% if curso[8] %}S{% endif %}
-                            {% if curso[9] %}D{% endif %}
-                            {{ curso[10] }} - {{ curso[11]  }}
-                        </p>
-                        <p class="card-text"><b>Salón: </b>{{ curso[2] }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+            <h1 class="mb-3">Curso con Id {{ cursoId }}</h1>
         </div>
     </div>
 
     <script>
         function logout() {
             window.location.href = "/";
-        }
-
-        function goCourse(courseId) {
-            window.location.href = "/informacion-curso/" + courseId; 
         }
     </script>
 </body>

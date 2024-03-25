@@ -2,6 +2,13 @@ body {
     min-height: 100vh;
 }
 
+header {
+    background-color: #0B1D51;
+    color: #FFFFFF;
+}
+
+/* LOGIN STYLES */
+
 .light-background {
     background-color: #E9EDF9;
 }
@@ -19,10 +26,23 @@ body {
     border-radius: 20px 0 0 20px;
 }
 
+/* BUTTON STYLES */
+
 .cta {
     background-color: #0A7FD4;
     color: #FFFFFF;
     box-shadow: 0px 10px 10px -3px rgba(0,0,0,0.1);
     border: none;
     border-radius: 5px;
+}
+
+.logout-button {
+    background-color: transparent;
+    color: #FFFFFF;
+    border: none;
+}
+
+.transparent-button {
+    background-color: transparent;
+    border: none;
 }

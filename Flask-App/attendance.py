@@ -26,12 +26,34 @@ def login():
     if data is not None:
         session['nomina'] = data[0]
         session['profesor'] = data[1] + ' ' + data[2]
-        return redirect('/clases')
+        return redirect('/cursos')
     else:
         flash('El usuario o la contraseña no coinciden.')
         return redirect('/')
 
 
-@app.route('/clases')
+@app.route('/cursos')
 def loadMenu():
-    return render_template("profesor/class-menu.html")
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Clase WHERE Nomina_Profesor=(%s)''', (session['nomina'],))
+    courses = cursor.fetchall()
+    # Format hour
+    x = []
+    for element in courses:
+        y = list(element)
+        y[10] = ":".join(str(element[10]).split(":")[0:2])
+        y[11] = ":".join(str(element[11]).split(":")[0:2])
+        element = tuple(y)
+        x.append(element)
+    courses = tuple(x)
+    print(courses)
+    return render_template("profesor/class-menu.html", profesor=session['profesor'], cursos=courses)
+
+@app.route('/informacion-curso/<int:id>')
+def loadCourseInformation(id):
+    return render_template("profesor/informacion-curso.html", profesor=session['profesor'], cursoId=id)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
