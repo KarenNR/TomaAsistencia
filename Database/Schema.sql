@@ -35,6 +35,7 @@ CREATE TABLE Clase (
     J bool,
     V bool,
     S bool,
+    D bool,
     Hora_Inicio time,
     Hora_Final time,
     Nomina_Profesor int,
