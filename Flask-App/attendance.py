@@ -105,7 +105,22 @@ def loadCourseInformation(id):
 
 @app.route('/informacion-curso/<int:courseId>/alumno/<int:studentId>')
 def loadStudentInformation(courseId, studentId):
-    return render_template("profesor/informacion-alumno.html", profesor=session['profesor'], curso=courseId, estudiante=studentId)
+    # Get course information
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (courseId,))
+    courseInformation = cursor.fetchone()
+    cursor.close()
+    # Get days in which class is taken
+    days = courseInformation[3:10]
+    # Get student information
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Alumno WHERE Matricula=(%s)''', (studentId,))
+    studentInformation = cursor.fetchone()
+    cursor.close()
+    # Calculate attendance average
+    average, details = getStudentDetail(courseId, studentId, days)
+    return render_template("profesor/informacion-alumno.html", profesor=session['profesor'], alumno=studentInformation,
+                           promedio=average, detalles=details)
 
 
 @app.route('/logout')
@@ -138,3 +153,34 @@ def getStudentAverage(courseId, studentId, days):
             results["total"] += 1
         startDate += timedelta(days=1)
     return results
+
+
+def getStudentDetail(courseId, studentId, days):
+    startDate = semesterStart
+    endDate = todayDate if todayDate < semesterEnd else semesterEnd
+    results = {"asistencia": 0, "falta": 0, "retardo": 0, "total": 0}
+    details = []
+    while startDate <= endDate:
+        if days[startDate.weekday()] and startDate not in holidays:
+            detail = [startDate.strftime("%Y-%m-%d")]
+            cursor = mysql.connection.cursor()
+            cursor.execute('''SELECT Asistencia FROM Asistencia WHERE ID_Clase=(%s) AND Matricula_Alumno=(%s) AND Fecha=(%s)''',
+                           (courseId, studentId, startDate.strftime("%Y-%m-%d")))
+            attendance = cursor.fetchone()
+            # 0 = Asistencia / 1 = Falta / 2 = Retardo
+            if attendance is None:
+                results["falta"] += 1
+                detail.append(1)
+            elif attendance[0] == 0:
+                results["asistencia"] += 1
+                detail.append(0)
+            elif attendance[0] == 1:
+                results["falta"] += 1
+                detail.append(1)
+            else:
+                results["retardo"] += 1
+                detail.append(2)
+            results["total"] += 1
+            details.append(detail)
+        startDate += timedelta(days=1)
+    return results, details
