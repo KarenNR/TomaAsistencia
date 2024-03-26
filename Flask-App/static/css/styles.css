@@ -59,6 +59,11 @@ footer {
 
 /* TABLE STYLES */
 
+th {
+    background-color: #0B1D51 !important;
+    color: #FFFFFF !important;
+}
+
 td {
     vertical-align: middle;
 }

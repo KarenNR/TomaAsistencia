@@ -77,14 +77,14 @@
         <div class="row m-0 justify-content-center">
             <h2 class="mb-3">Lista de asistencia por día</h2>
             <div class="col-12 col-lg-6">
-                <table class="table table-striped">
+                <table class="table table-bordered table-striped">
                     <tr>
-                        <th>Fecha</th>
-                        <th>Detalle</th>
+                        <th class="text-center">Fecha</th>
+                        <th class="text-center">Detalle</th>
                     </tr>
                     {% for detalle in detalles %}
                     <tr>
-                        <td>{{ detalle[0] }}</td>
+                        <td class="text-center">{{ detalle[0] }}</td>
                         {% if detalle[1] == 0 %}
                         <td class="asistencia">Asistencia</td>
                         {% else %}

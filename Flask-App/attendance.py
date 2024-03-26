@@ -162,7 +162,7 @@ def getStudentDetail(courseId, studentId, days):
     details = []
     while startDate <= endDate:
         if days[startDate.weekday()] and startDate not in holidays:
-            detail = [startDate.strftime("%Y-%m-%d")]
+            detail = [startDate.strftime("%d-%m-%Y")]
             cursor = mysql.connection.cursor()
             cursor.execute('''SELECT Asistencia FROM Asistencia WHERE ID_Clase=(%s) AND Matricula_Alumno=(%s) AND Fecha=(%s)''',
                            (courseId, studentId, startDate.strftime("%Y-%m-%d")))
