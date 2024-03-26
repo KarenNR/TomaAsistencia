@@ -46,3 +46,18 @@ header {
     background-color: transparent;
     border: none;
 }
+
+/* TABLE STYLES */
+
+td {
+    vertical-align: middle;
+}
+
+.student-img {
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}

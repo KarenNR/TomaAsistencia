@@ -15,16 +15,19 @@
         crossorigin="anonymous"></script>
     <!--Fontawesome-->
     <script src="https://kit.fontawesome.com/98c42d1474.js" crossorigin="anonymous"></script>
+    <!--Highcharts-->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 </head>
 
 <body>
     <header>
         <div class="container">
-            <div class="row m-0 px-0 py-2 justify-content-between align-items-center">
-                <div class="col-auto px-0">
+            <div class="row m-0 py-2 justify-content-between align-items-center">
+                <div class="col-auto">
                     <i class="fa-solid fa-user"></i>&nbsp;&nbsp;{{ profesor }}
                 </div>
-                <div class="col-auto px-0">
+                <div class="col-auto">
                     <button class="btn btn-outline-light" onclick="logout()">
                         Cerrar sesión <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
@@ -34,15 +37,166 @@
     </header>
 
     <div class="container py-4">
-        <div class="row m-0">
-            <h1 class="mb-3">Curso con Id {{ cursoId }}</h1>
+        {% if cantidadAlumnos > 0 %}
+        <div class="row m-0 mb-5 gy-3">
+            <h1 class="mb-4">{{ curso[1] }}</h1>
+            <!--Información del curso-->
+            <div class="col-12 col-lg-6">
+                <div class="card h-100">
+                    <div class="card-body p-3">
+                        <h5 class="card-title mb-3">Información del curso</h5>
+                        <h6 class="card-subtitle">Horario</h6>
+                        <p class="card-text">
+                            {% if curso[3] %}L{% endif %}
+                            {% if curso[4] %}M{% endif %}
+                            {% if curso[5] %}Mi{% endif %}
+                            {% if curso[6] %}J{% endif %}
+                            {% if curso[7] %}V{% endif %}
+                            {% if curso[8] %}S{% endif %}
+                            {% if curso[9] %}D{% endif %}
+                            {{ curso[10] }} - {{ curso[11] }}
+                        </p>
+                        <h6 class="card-subtitle">Salón</h6>
+                        <p class="card-text">{{ curso[2] }}</p>
+                        <h6 class="card-subtitle">Promedio grupal hasta la fecha</h6>
+                        <p class="card-text">{{ "{:.2f}%".format(promedioClase["asistencia"]/promedioClase["total"]*100)
+                            }}</p>
+                        <h6>Reportes</h6>
+                        <div class="row m-0 px-0">
+                            <div class="col-4 px-0 me-3">
+                                <button class="cta p-2 h-100 w-100" onclick="downloadToday()">
+                                    <div class="row m-0 align-items-center">
+                                        <div class="col-2 px-0"><i class="fa-solid fa-download"></i></div>
+                                        <div class="col-10 px-0">Reporte de hoy</div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-4 px-0">
+                                <button class="cta p-2 h-100 w-100" onclick="downloadAverage()">
+                                    <div class="row m-0 align-items-center">
+                                        <div class="col-2 px-0"><i class="fa-solid fa-download"></i></div>
+                                        <div class="col-10 px-0">Reporte de promedio grupal</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--Estadísticas del grupo-->
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-3">
+                        <div id="container"></div>
+                    </div>
+                </div>
+            </div>
         </div>
+        <div class="row m-0">
+            <h2 class="mb-3">Lista de alumnos</h2>
+            <div class="col-12">
+                <table class="table table-striped">
+                    <tr>
+                        <th class="text-center">Foto</th>
+                        <th>Matrícula</th>
+                        <th>Nombre</th>
+                        <th>Promedio de asistencia</th>
+                        <th>Detalles</th>
+                    </tr>
+                    {% for alumno, promedio in alumnos %}
+                    <tr>
+                        <td>
+                            <img src="/static/img/student_{{ alumno[0] }}.jpg" class="student-img">
+                        </td>
+                        <td>{{ alumno[0] }}</td>
+                        <td>{{ alumno[1] }} {{ alumno[2] }}</td>
+                        <td>{{ "{:.2f}%".format(promedio["asistencia"]/promedio["total"]*100) }}</td>
+                        <td>
+                            <button class="btn btn-outline-dark" onclick="goDetails('{{ alumno[0] }}')">Ver detalles</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="row m-0 mb-5 gy-3">
+            <h1 class="mb-4">{{ curso[1] }}</h1>
+            <h5>No hay alumnos asignados a esta clase.</h5>
+        </div>
+        {% endif %}
     </div>
 
     <script>
         function logout() {
             window.location.href = "/";
         }
+
+        function goDetails(matricula) {
+            window.location.href = "/informacion-curso/{{ curso[0] }}/alumno/" + matricula;
+        }
+
+        function downloadToday() {
+            console.log("Descargar reporte de hoy...");
+        }
+
+        function downloadAverage() {
+            console.log("Descargar reporte de promedio grupal...");
+        }
+
+        Highcharts.chart('container', {
+            accessibility: {
+                description: 'Promedio grupal de asistencia'
+            },
+            colors: ['#71BF45', '#FAA74B', '#01BAF2'],
+            chart: {
+                type: 'pie'
+            },
+            title: {
+                text: 'Promedio de asistencias del grupo'
+            },
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.percentage:.2f}%</b>',
+                valueSuffix: '%'
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.name}: {y}'
+                    },
+                    showInLegend: true
+                }
+            },
+            legend: {
+                align: "right",
+                layout: "vertical",
+                verticalAlign: "middle"
+            },
+            series: [
+                {
+                    name: 'Porcentaje',
+                    colorByPoint: true,
+                    innerSize: '60%',
+                    data: [
+                        {
+                            name: 'Asistencia',
+                            y: parseInt('{{ promedioClase["asistencia"] }}')
+                        },
+                        {
+                            name: 'Falta',
+                            y: parseInt('{{ promedioClase["falta"] }}')
+                        },
+                        {
+                            name: 'Retardo',
+                            y: parseInt('{{ promedioClase["retardo"] }}')
+                        }
+                    ]
+                }
+            ]
+        });
     </script>
 </body>
 
