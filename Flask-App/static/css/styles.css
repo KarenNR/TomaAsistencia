@@ -7,6 +7,16 @@ header {
     color: #FFFFFF;
 }
 
+footer {
+    position: sticky;
+    top: 100%;
+    background-color: #312F2F;
+    color: #FFFFFF;
+    padding: 20px;
+    margin-top: 60px;
+    text-align: center;
+}
+
 /* LOGIN STYLES */
 
 .light-background {
