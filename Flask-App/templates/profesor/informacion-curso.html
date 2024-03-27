@@ -50,6 +50,11 @@
     <div class="container py-4">
         {% if cantidadAlumnos > 0 %}
         <div class="row m-0 mb-5 gy-3">
+            <!--Breadcrumb-->
+            <small>
+                <a href="/cursos">Mis cursos</a> / 
+                <a>{{ curso[1] }}</a>
+            </small>
             <h1 class="mb-4">{{ curso[1] }}</h1>
             <!--Información del curso-->
             <div class="col-12 col-lg-6">

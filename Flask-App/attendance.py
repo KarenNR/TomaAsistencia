@@ -123,7 +123,7 @@ def loadStudentInformation(courseId, studentId):
     # Calculate attendance average
     average, details = getStudentDetail(courseId, studentId, days)
     return render_template("profesor/informacion-alumno.html", profesor=session['profesor'], alumno=studentInformation,
-                           promedio=average, detalles=details, curso=courseId)
+                           promedio=average, detalles=details, curso=courseId, nombreCurso=courseInformation[1])
 
 
 # ---------- DOWNLOAD REPORTS ROUTES ---------
