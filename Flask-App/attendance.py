@@ -346,7 +346,7 @@ def logout():
     return redirect('/')
 
 
-# ---------- ATTENDANCE AVERAGE METHODS ----------
+# ---------- ATTENDANCE AVERAGE FUNCTIONS ----------
 
 def getStudentAverage(courseId, studentId, days):
     startDate = semesterStart
