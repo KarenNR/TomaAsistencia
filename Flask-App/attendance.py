@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, redirect, session, flash
 from flask_mysqldb import MySQL
 from datetime import datetime, timedelta
+import time
+import openpyxl
+import os
 
 # ---------- GLOBAL VARIABLES ----------
 
@@ -10,8 +13,6 @@ todayDate = datetime.now()
 holidays = (datetime(2024, 2, 5), datetime(2024, 3, 18), datetime(2024, 3, 25), 
             datetime(2024, 3, 26), datetime(2024, 3, 27), datetime(2024, 3, 28), 
             datetime(2024, 3, 29), datetime(2024, 3, 30), datetime(2024, 5, 1))
-classAttendance = {} # Saved for efficiency
-studentAttendance = {} # Saved for efficiency
 
 # ---------- FLASK CONFIGURATION ----------
 
@@ -24,6 +25,8 @@ app.config['MYSQL_PASSWORD'] = 'karengt'
 app.config['MYSQL_DB'] = 'AttendanceSystem'
 
 mysql = MySQL(app)
+
+# ---------- WEB ROUTES ----------
 
 @app.route('/')
 def loadIndex():
@@ -120,7 +123,221 @@ def loadStudentInformation(courseId, studentId):
     # Calculate attendance average
     average, details = getStudentDetail(courseId, studentId, days)
     return render_template("profesor/informacion-alumno.html", profesor=session['profesor'], alumno=studentInformation,
-                           promedio=average, detalles=details)
+                           promedio=average, detalles=details, curso=courseId)
+
+
+# ---------- DOWNLOAD REPORTS ROUTES ---------
+
+@app.route('/descargar-reporte/<int:courseId>/alumno/<int:studentId>')
+def downloadStudentReporte(courseId, studentId):
+    # Get course information
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (courseId,))
+    courseInformation = cursor.fetchone()
+    cursor.close()
+    # Get days in which class is taken
+    days = courseInformation[3:10]
+    # Get student information
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Alumno WHERE Matricula=(%s)''', (studentId,))
+    studentInformation = cursor.fetchone()
+    cursor.close()
+    # Calculate attendance average
+    average, details = getStudentDetail(courseId, studentId, days)
+    # Create XLSX file
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    data = [
+        ["REPORTE DE ASISTENCIAS DE ALUMNO"],
+        ["Fecha", todayDate.strftime("%d-%m-%Y")],
+        ["Clase", courseInformation[1]],
+        [],
+        ["DATOS DEL ALUMNO"],
+        ["Matricula", "Nombre", "Apellidos", "Carrera"],
+        list(studentInformation),
+        [],
+        ["PROMEDIO DE ASISTENCIAS"],
+        ["Asistencias", "Faltas", "Retardos", "Promedio al día de hoy"],
+        [average["asistencia"], average["falta"], average["retardo"], average["asistencia"]/average["total"]],
+        [],
+        ["ASISTENCIAS POR DÍA"]
+    ]
+    for detail in details:
+        content = [detail[0], "Asistencia" if detail[1]==0 else "Falta" if detail[1]==1 else "Retardo"]
+        data.append(content)
+    for row in data:
+        sheet.append(row)
+    # Format data
+    sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=2)
+    sheet.merge_cells(start_row=5, start_column=1, end_row=5, end_column=4)
+    sheet.merge_cells(start_row=9, start_column=1, end_row=9, end_column=4)
+    sheet.merge_cells(start_row=13, start_column=1, end_row=13, end_column=2)
+    column_widths = [20, 20, 20, 20]
+    for i, width in enumerate(column_widths, start=1):
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+    sheet['D11'].number_format = '0.00%'
+    sheet['A1'].font = openpyxl.styles.Font(bold=True)
+    sheet['A5'].font = openpyxl.styles.Font(bold=True)
+    sheet['A9'].font = openpyxl.styles.Font(bold=True)
+    sheet['A13'].font = openpyxl.styles.Font(bold=True)
+    # Download report
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+    file_name = downloads_path + "/Reporte_Alumno_{}_{}.xlsx".format(studentId, int(time.time()))
+    workbook.save(file_name)
+    # Send success message
+    flash("Reporte guardado en descargas")
+    return redirect("/informacion-curso/{}/alumno/{}".format(courseId, studentId))
+
+
+@app.route('/descargar-reporte/<int:id>/hoy')
+def downloadTodayReport(id):
+    # Get course information
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (id,))
+    courseInformation = cursor.fetchone()
+    cursor.close()
+    # Get all students from course
+    cursor = mysql.connection.cursor()
+    cursor.execute('''
+                    SELECT Matricula, Alumno.Nombre, Apellido, Carrera 
+                    FROM Clase JOIN Alumno_Clase ON Clase.ID_Clase=Alumno_Clase.ID_Clase
+                        JOIN Alumno On Matricula=Matricula_Alumno
+                    WHERE Clase.ID_Clase=(%s)
+                    ORDER BY Matricula''', (id,))
+    students = cursor.fetchall()
+    cursor.close()
+    # Check attendance per student
+    classAverage = {"asistencia": 0, "falta": 0, "retardo": 0, "total": 0}
+    studentAttendance = []
+    for student in students:
+        row = [student[0], student[1], student[2]]
+        cursor = mysql.connection.cursor()
+        cursor.execute('''SELECT Asistencia FROM Asistencia WHERE ID_Clase=(%s) AND Matricula_Alumno=(%s) AND Fecha=(%s)''',
+                       (id, student[0], todayDate.strftime("%Y-%m-%d")))
+        attendance = cursor.fetchone()
+        # 0 = Asistencia / 1 = Falta / 2 = Retardo
+        if attendance is None:
+            classAverage["falta"] += 1
+            row.append(1)
+        elif attendance[0] == 0:
+            classAverage["asistencia"] += 1
+            row.append(0)
+        elif attendance[0] == 1:
+            classAverage["falta"] += 1
+            row.append(1)
+        else:
+            classAverage["retardo"] += 1
+            row.append(2)
+        classAverage["total"] += 1
+        studentAttendance.append(row)
+    # Create XLSX file
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    data = [
+        ["REPORTE DE ASISTENCIAS DEL DÍA DE HOY"],
+        ["Fecha", todayDate.strftime("%d-%m-%Y")],
+        ["Clase", courseInformation[1]],
+        [],
+        ["PROMEDIO DE ASISTENCIAS"],
+        ["Asistencias", "Faltas", "Retardos", "Promedio del día de hoy"],
+        [classAverage["asistencia"], classAverage["falta"], classAverage["retardo"], classAverage["asistencia"]/classAverage["total"]],
+        [],
+        ["DESGLOSE DE ASISTENCIA"],
+        ["Matrícula", "Nombre", "Apellidos", "Asistencia"]
+    ]
+    for detail in studentAttendance:
+        content = [detail[0], detail[1], detail[2], "Asistencia" if detail[3]==0 else "Falta" if detail[3]==1 else "Retardo"]
+        data.append(content)
+    for row in data:
+        sheet.append(row)
+    # Format data
+    sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=2)
+    sheet.merge_cells(start_row=5, start_column=1, end_row=5, end_column=4)
+    sheet.merge_cells(start_row=9, start_column=1, end_row=9, end_column=4)
+    column_widths = [20, 20, 20, 20]
+    for i, width in enumerate(column_widths, start=1):
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+    sheet['D7'].number_format = '0.00%'
+    sheet['A1'].font = openpyxl.styles.Font(bold=True)
+    sheet['A5'].font = openpyxl.styles.Font(bold=True)
+    sheet['A9'].font = openpyxl.styles.Font(bold=True)
+    # Download report
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+    file_name = downloads_path + "/Reporte_Clase_{}_{}.xlsx".format(id, int(time.time()))
+    workbook.save(file_name)
+    # Send success message
+    flash("Reporte guardado en descargas")
+    return redirect("/informacion-curso/{}".format(id))
+
+
+@app.route('/descargar-reporte/<int:id>/general')
+def downloadGeneralReport(id):
+    # Get course information
+    cursor = mysql.connection.cursor()
+    cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (id,))
+    courseInformation = cursor.fetchone()
+    cursor.close()
+    # Get days in which class is taken
+    days = courseInformation[3:10]
+    # Get all students from course
+    cursor = mysql.connection.cursor()
+    cursor.execute('''
+                    SELECT Matricula, Alumno.Nombre, Apellido, Carrera 
+                    FROM Clase JOIN Alumno_Clase ON Clase.ID_Clase=Alumno_Clase.ID_Clase
+                        JOIN Alumno On Matricula=Matricula_Alumno
+                    WHERE Clase.ID_Clase=(%s)
+                    ORDER BY Matricula''', (id,))
+    students = cursor.fetchall()
+    cursor.close()
+    # Get average attendance per student
+    classAverage = {"asistencia": 0, "falta": 0, "retardo": 0, "total": 0}
+    studentAttendance = []
+    for student in students:
+        attendanceInfo = getStudentAverage(id, student[0], days)
+        classAverage["asistencia"] += attendanceInfo["asistencia"]
+        classAverage["falta"] += attendanceInfo["falta"]
+        classAverage["retardo"] += attendanceInfo["retardo"]
+        classAverage["total"] += attendanceInfo["total"]
+        row = [student[0], student[1], student[2], attendanceInfo["asistencia"]/attendanceInfo["total"]]
+        studentAttendance.append(row)
+    # Create XLSX file
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    data = [
+        ["REPORTE DE PROMEDIO GRUPAL DE ASISTENCIAS"],
+        ["Fecha", todayDate.strftime("%d-%m-%Y")],
+        ["Clase", courseInformation[1]],
+        [],
+        ["PROMEDIO GRUPAL DE ASISTENCIAS"],
+        ["Asistencias", "Faltas", "Retardos", "Promedio al día de hoy"],
+        [classAverage["asistencia"], classAverage["falta"], classAverage["retardo"], classAverage["asistencia"]/classAverage["total"]],
+        [],
+        ["PROMEDIO DE ASISTENCIA POR ALUMNO"],
+        ["Matrícula", "Nombre", "Apellidos", "Promedio de asistencia"]
+    ]
+    for detail in studentAttendance:
+        data.append(detail)
+    for row in data:
+        sheet.append(row)
+    # Format data
+    sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=2)
+    sheet.merge_cells(start_row=5, start_column=1, end_row=5, end_column=4)
+    sheet.merge_cells(start_row=9, start_column=1, end_row=9, end_column=4)
+    column_widths = [20, 20, 20, 20]
+    for i, width in enumerate(column_widths, start=1):
+        sheet.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+    for cell in sheet['D']:
+        cell.number_format = '0.00%'
+    sheet['A1'].font = openpyxl.styles.Font(bold=True)
+    sheet['A5'].font = openpyxl.styles.Font(bold=True)
+    sheet['A9'].font = openpyxl.styles.Font(bold=True)
+    # Download report
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+    file_name = downloads_path + "/Reporte_Promedio_Clase_{}_{}.xlsx".format(id, int(time.time()))
+    workbook.save(file_name)
+    # Send success message
+    flash("Reporte guardado en descargas")
+    return redirect("/informacion-curso/{}".format(id))
 
 
 @app.route('/logout')

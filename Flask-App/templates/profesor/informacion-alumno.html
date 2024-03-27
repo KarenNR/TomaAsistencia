@@ -18,9 +18,20 @@
     <!--Highcharts-->
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <!--SweetAlert-->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
+    {% for mess in get_flashed_messages() %}
+    <script>
+        Swal.fire({
+            title: "{{ mess }}",
+            icon: "success"
+        });
+    </script>
+    {% endfor %}
+
     <header>
         <div class="container">
             <div class="row m-0 py-2 justify-content-between align-items-center">
@@ -54,7 +65,7 @@
                         <h6>Reportes</h6>
                         <div class="row m-0 px-0">
                             <div class="col-4 px-0 me-3">
-                                <button class="cta p-2 h-100 w-100" onclick="dowloadReport()">
+                                <button class="cta p-2 h-100 w-100" onclick="downloadReport()">
                                     <div class="row m-0 align-items-center">
                                         <div class="col-2 px-0"><i class="fa-solid fa-download"></i></div>
                                         <div class="col-10 px-0">Reporte de asistencias</div>
@@ -100,7 +111,7 @@
             </div>
         </div>
     </div>
-
+    
     <footer>
         Copyright © 2024
     </footer>
@@ -110,8 +121,8 @@
             window.location.href = "/";
         }
 
-        function dowloadReport() {
-            console.log("Descargar reporte de alumno...");
+        function downloadReport() {
+            window.location.href = "/descargar-reporte/{{ curso }}/alumno/{{ alumno[0] }}";
         }
 
         Highcharts.chart('container', {
