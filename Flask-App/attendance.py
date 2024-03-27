@@ -51,79 +51,91 @@ def login():
 
 @app.route('/cursos')
 def loadMenu():
-    cursor = mysql.connection.cursor()
-    cursor.execute('''SELECT * FROM Clase WHERE Nomina_Profesor=(%s)''', (session['nomina'],))
-    courses = cursor.fetchall()
-    # Format hour
-    x = []
-    for element in courses:
-        y = list(element)
-        y[10] = ":".join(str(element[10]).split(":")[0:2])
-        y[11] = ":".join(str(element[11]).split(":")[0:2])
-        element = tuple(y)
-        x.append(element)
-    courses = tuple(x)
-    cursor.close()
-    return render_template("profesor/class-menu.html", profesor=session['profesor'], cursos=courses)
+    if 'profesor' in session:
+        cursor = mysql.connection.cursor()
+        cursor.execute('''SELECT * FROM Clase WHERE Nomina_Profesor=(%s)''', (session['nomina'],))
+        courses = cursor.fetchall()
+        # Format hour
+        x = []
+        for element in courses:
+            y = list(element)
+            y[10] = ":".join(str(element[10]).split(":")[0:2])
+            y[11] = ":".join(str(element[11]).split(":")[0:2])
+            element = tuple(y)
+            x.append(element)
+        courses = tuple(x)
+        cursor.close()
+        return render_template("profesor/class-menu.html", profesor=session['profesor'], cursos=courses)
+    else:
+        flash("Por favor inicie sesión antes de ingresar al sistema")
+        return redirect("/")
 
 
 @app.route('/informacion-curso/<int:id>')
 def loadCourseInformation(id):
-    # Get course information
-    cursor = mysql.connection.cursor()
-    cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (id,))
-    courseInformation = cursor.fetchone()
-    # Format hour
-    x = list(courseInformation)
-    x[10] = ":".join(str(courseInformation[10]).split(":")[0:2])
-    x[11] = ":".join(str(courseInformation[11]).split(":")[0:2])
-    courseInformation = tuple(x)
-    cursor.close()
-    # Get days in which class is taken
-    days = courseInformation[3:10]
-    # Get all students from course
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-                    SELECT Matricula, Alumno.Nombre, Apellido, Carrera 
-                    FROM Clase JOIN Alumno_Clase ON Clase.ID_Clase=Alumno_Clase.ID_Clase
-                        JOIN Alumno On Matricula=Matricula_Alumno
-                    WHERE Clase.ID_Clase=(%s)
-                    ORDER BY Matricula''', (id,))
-    students = cursor.fetchall()
-    cursor.close()
-    # Calculate attendance average per student
-    classAverage = {"asistencia": 0, "falta": 0, "retardo": 0, "total": 0}
-    studentAverages = []
-    for student in students:
-        attendanceInfo = getStudentAverage(id, student[0], days)
-        studentAverages.append(attendanceInfo)
-        classAverage["asistencia"] += attendanceInfo["asistencia"]
-        classAverage["falta"] += attendanceInfo["falta"]
-        classAverage["retardo"] += attendanceInfo["retardo"]
-        classAverage["total"] += attendanceInfo["total"]
+    if 'profesor' in session:
+        # Get course information
+        cursor = mysql.connection.cursor()
+        cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (id,))
+        courseInformation = cursor.fetchone()
+        # Format hour
+        x = list(courseInformation)
+        x[10] = ":".join(str(courseInformation[10]).split(":")[0:2])
+        x[11] = ":".join(str(courseInformation[11]).split(":")[0:2])
+        courseInformation = tuple(x)
+        cursor.close()
+        # Get days in which class is taken
+        days = courseInformation[3:10]
+        # Get all students from course
+        cursor = mysql.connection.cursor()
+        cursor.execute('''
+                        SELECT Matricula, Alumno.Nombre, Apellido, Carrera 
+                        FROM Clase JOIN Alumno_Clase ON Clase.ID_Clase=Alumno_Clase.ID_Clase
+                            JOIN Alumno On Matricula=Matricula_Alumno
+                        WHERE Clase.ID_Clase=(%s)
+                        ORDER BY Matricula''', (id,))
+        students = cursor.fetchall()
+        cursor.close()
+        # Calculate attendance average per student
+        classAverage = {"asistencia": 0, "falta": 0, "retardo": 0, "total": 0}
+        studentAverages = []
+        for student in students:
+            attendanceInfo = getStudentAverage(id, student[0], days)
+            studentAverages.append(attendanceInfo)
+            classAverage["asistencia"] += attendanceInfo["asistencia"]
+            classAverage["falta"] += attendanceInfo["falta"]
+            classAverage["retardo"] += attendanceInfo["retardo"]
+            classAverage["total"] += attendanceInfo["total"]
 
-    return render_template("profesor/informacion-curso.html", profesor=session['profesor'], curso=courseInformation, 
-                           alumnos=zip(students, studentAverages), promedioClase=classAverage, cantidadAlumnos=len(students))
+        return render_template("profesor/informacion-curso.html", profesor=session['profesor'], curso=courseInformation, 
+                            alumnos=zip(students, studentAverages), promedioClase=classAverage, cantidadAlumnos=len(students))
+    else:
+        flash("Por favor inicie sesión antes de ingresar al sistema")
+        return redirect("/")
 
 
 @app.route('/informacion-curso/<int:courseId>/alumno/<int:studentId>')
 def loadStudentInformation(courseId, studentId):
-    # Get course information
-    cursor = mysql.connection.cursor()
-    cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (courseId,))
-    courseInformation = cursor.fetchone()
-    cursor.close()
-    # Get days in which class is taken
-    days = courseInformation[3:10]
-    # Get student information
-    cursor = mysql.connection.cursor()
-    cursor.execute('''SELECT * FROM Alumno WHERE Matricula=(%s)''', (studentId,))
-    studentInformation = cursor.fetchone()
-    cursor.close()
-    # Calculate attendance average
-    average, details = getStudentDetail(courseId, studentId, days)
-    return render_template("profesor/informacion-alumno.html", profesor=session['profesor'], alumno=studentInformation,
-                           promedio=average, detalles=details, curso=courseId, nombreCurso=courseInformation[1])
+    if 'profesor' in session:
+        # Get course information
+        cursor = mysql.connection.cursor()
+        cursor.execute('''SELECT * FROM Clase WHERE ID_Clase=(%s)''', (courseId,))
+        courseInformation = cursor.fetchone()
+        cursor.close()
+        # Get days in which class is taken
+        days = courseInformation[3:10]
+        # Get student information
+        cursor = mysql.connection.cursor()
+        cursor.execute('''SELECT * FROM Alumno WHERE Matricula=(%s)''', (studentId,))
+        studentInformation = cursor.fetchone()
+        cursor.close()
+        # Calculate attendance average
+        average, details = getStudentDetail(courseId, studentId, days)
+        return render_template("profesor/informacion-alumno.html", profesor=session['profesor'], alumno=studentInformation,
+                            promedio=average, detalles=details, curso=courseId, nombreCurso=courseInformation[1])
+    else:
+        flash("Por favor inicie sesión antes de ingresar al sistema")
+        return redirect("/")
 
 
 # ---------- DOWNLOAD REPORTS ROUTES ---------
