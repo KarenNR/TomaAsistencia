@@ -1,0 +1,119 @@
+body {
+    min-height: 100vh;
+}
+
+header {
+    background-color: #0B1D51;
+    color: #FFFFFF;
+}
+
+footer {
+    position: sticky;
+    top: 100%;
+    background-color: #312F2F;
+    color: #FFFFFF;
+    padding: 20px;
+    margin-top: 60px;
+    text-align: center;
+}
+
+/* LOGIN STYLES */
+
+.light-background {
+    background-color: #E9EDF9;
+}
+
+.login-container {
+    background-color: #FFFFFF;
+    box-shadow: 5px 10px 15px -3px rgba(0,0,0,0.1);
+    border-radius: 20px;
+}
+
+.login-img {
+    width: 100%;
+    height: 80vh;
+    object-fit: cover;
+    border-radius: 20px 0 0 20px;
+}
+
+/* BUTTON STYLES */
+
+.cta {
+    background-color: #0A7FD4;
+    color: #FFFFFF;
+    box-shadow: 0px 10px 10px -3px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 5px;
+}
+
+.outline-button {
+    background-color: transparent;
+    color: #0A7FD4;
+    box-shadow: 0px 10px 10px -3px rgba(0,0,0,0.1);
+    border: 1px solid #0A7FD4;
+    border-radius: 5px;
+}
+
+.logout-button {
+    background-color: transparent;
+    color: #FFFFFF;
+    border: none;
+}
+
+.transparent-button {
+    background-color: transparent;
+    border: none;
+}
+
+/* TABLE STYLES */
+
+th {
+    background-color: #0B1D51 !important;
+    color: #FFFFFF !important;
+}
+
+td {
+    vertical-align: middle;
+}
+
+.student-img {
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.student-img-lg {
+    height: 100px;
+    width: 100px;
+    border-radius: 50%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.asistencia {
+    background-color: #81BD72 !important;
+    padding: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.falta {
+    background-color: #E66967 !important;
+    padding: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.retardo {
+    background-color: #FAA74B !important;
+    padding: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+}
